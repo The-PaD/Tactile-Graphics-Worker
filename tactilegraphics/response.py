@@ -1,3 +1,5 @@
+import os
+import inspect
 import re
 import smtplib
 from email.mime.text import MIMEText
@@ -66,7 +68,9 @@ class TGResponse:
         return "http://s3.amazonaws.com/%s/%s" % (bucket_name, key_name)
 
     def html_content(self):
-        templates = Environment(loader=FileSystemLoader('tg/templates'))
+        self_dir = os.path.dirname(inspect.getfile(inspect.currentframe()))
+        template_dir = os.path.join(self_dir, 'templates')
+        templates = Environment(loader=FileSystemLoader(template_dir))
         template = templates.get_template('html-email.phtml')
         return template.render(response=self)
 
