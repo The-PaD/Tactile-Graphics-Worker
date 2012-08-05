@@ -1,0 +1,7 @@
+[tg]
+TG_WORK_QUEUE=tg-work
+TG_FINISHED_QUEUE=tg-finished
+TG_FILE_BUCKET=tactile-graphics
+TG_COUCH_DB=tactile-graphics
+TG_APP_HOME=/home/ubuntu/app
+TG_CLASSPATH=%(tg_app_home)s/sikuli-makerbot-1.0-jar-with-dependencies.jar
