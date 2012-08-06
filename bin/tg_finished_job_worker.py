@@ -113,8 +113,10 @@ def make_job_files_public(jobs):
 def create_reply_message(message, jobs):
     return TGResponse(message,
                       jobs,
-                      config.get('email','IMAP_USER'),
-                      config.get('email','IMAP_PASSWORD'))
+                      config.get('email','SMTP_USER'),
+                      config.get('email','SMTP_PASSWORD'),
+                      config.get('email','SMTP_SERVER'),
+                      config.get('email','SMTP_PORT'))
 
 def send_response(response):
     response.send()

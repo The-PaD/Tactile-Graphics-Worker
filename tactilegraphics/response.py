@@ -15,11 +15,13 @@ class TGResponse:
     subject = ''
     original_subject = ''
 
-    def __init__(self, message, jobs, smtp_user, smtp_pass):
+    def __init__(self, message, jobs, smtp_user, smtp_pass, smtp_host='smtp.gmail.com', smtp_port=587):
         self.message = message
         self.jobs = jobs
         self.smtp_user = smtp_user
         self.smtp_pass = smtp_pass
+        self.smtp_host = smtp_host
+        self.smtp_port = smtp_port
         self.parse_recipient_info()
         self.set_subject()
         self.sort_jobs()
@@ -79,7 +81,7 @@ class TGResponse:
         msg['Subject'] = self.subject
         msg['From'] = "Tactile Graphics <%s>" % (self.smtp_user)
         msg['To'] = "%s <%s>" % (self.to_realname, self.to_addr)
-        s = smtplib.SMTP('smtp.gmail.com', 587)
+        s = smtplib.SMTP(self.smtp_host, self.smtp_port)
         s.ehlo()
         s.starttls()
         s.ehlo()
