@@ -1,4 +1,5 @@
 from tactilegraphics.logger import *
+from tactilegraphics.pidfile import *
 from boto.sqs.connection import SQSConnection
 from boto.s3.connection import S3Connection
 import ConfigParser, os
@@ -11,6 +12,9 @@ import time
 # Set up logging
 logger = TGLogger.set_logger('tg_queue_worker')
 logger.info("Worker started.")
+
+# Assert that we are alone
+assert_pid_lock('tg_queue_worker', logger)
 
 # Set up global objects
 config = ConfigParser.ConfigParser()
@@ -167,3 +171,5 @@ else:
     data = json.loads(msg.get_body())
     handle_job(data)
     msg.delete()
+
+release_pid_lock('tg_queue_worker')
