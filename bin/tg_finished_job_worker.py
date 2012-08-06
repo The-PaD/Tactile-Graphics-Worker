@@ -6,6 +6,7 @@ Reponsible for:
  * sending out emails when all jobs for a message are complete.
 """
 
+from tactilegraphics.logger import *
 from tactilegraphics.response import *
 from boto.sqs.connection import SQSConnection
 from boto.s3.connection import S3Connection
@@ -14,9 +15,12 @@ import ConfigParser, os
 import json
 import tempfile
 import re
-import pprint
 import subprocess
 import time
+
+# Set up logging
+logger = TGLogger.set_logger('tg_finished_job_watcher')
+logger.info("Finished job watcher started")
 
 # Set up global objects
 config = ConfigParser.ConfigParser()
@@ -133,6 +137,7 @@ def handle_job(finished_msg):
     job = fetch_job(finished_msg)
     message = fetch_message_for_job(job)
 
+    logger.info("Processing finished job %s for message %s", job['_id'], message['_id'])
     update_job(job, finished_msg)
     jobs = fetch_jobs_for_message(message)
     if(check_all_jobs_complete(jobs)):
@@ -140,15 +145,15 @@ def handle_job(finished_msg):
         response = create_reply_message(message, jobs)
         send_response(response)
         update_message(message, response)
-        print "Response sent: %s" % response.subject
+        logger.info("Response sent: %s" % response.subject)
     else:
-        print "still outstanding jobs. done for now.\n"
+        logger.info("Message has outstanding jobs. Done for now.")
 
 # Do things
 if __name__ == '__main__':
     msg = job_queue.read(1)
     if msg is None:
-        print "No jobs"
+        logger.info("No jobs")
     else:
         data = json.loads(msg.get_body())
         handle_job(data)

@@ -1,12 +1,16 @@
+from tactilegraphics.logger import *
 from boto.sqs.connection import SQSConnection
 from boto.s3.connection import S3Connection
 import ConfigParser, os
 import json
 import tempfile
 import re
-import pprint
 import subprocess
 import time
+
+# Set up logging
+logger = TGLogger.set_logger('tg_queue_worker')
+logger.info("Worker started.")
 
 # Set up global objects
 config = ConfigParser.ConfigParser()
@@ -43,6 +47,7 @@ def fetch_source_file(src_url, workdir):
     return tmpf.name
 
 def run_cmd(args, output_filename):
+    logger.info(' '.join(args))
     start_time = time.time()
     process = subprocess.Popen(
         args,
@@ -51,11 +56,13 @@ def run_cmd(args, output_filename):
     )
     stdout_data, stderr_data = process.communicate()
     stop_time = time.time()
+    elapsed_time = stop_time - start_time
     exit_status = process.returncode
+    logger.info("Command finished in %s seconds with status %s", elapsed_time, exit_status)
     return {
         'command': args,
         'exit_status': exit_status,
-        'elapsed_time': stop_time - start_time,
+        'elapsed_time': elapsed_time,
         'output_file': output_filename,
         'stdout': stdout_data,
         'stderr': stderr_data
@@ -130,22 +137,21 @@ def send_notification(target, response):
     queue = get_queue_from_arn(target)
     if(queue is None):
         raise Exception("Don't know how to notify: {0}".format(target))
-    print "Notifying {0}".format(target)
+    logger.info("Notifying {0}".format(target))
     notify_msg = queue.new_message(json.dumps(response))
     queue.write(notify_msg)
 
 def handle_job(job_data):
-    pprint.pprint(data)
+    logger.info("Processing job %s", job_data['_id'])
     cmd_results = []
     workdir = tempfile.mkdtemp()
     input_filename = fetch_source_file(job_data['source'], workdir)
-    print "Downloaded image to {0}".format(input_filename)
+    logger.info("Downloaded image to {0}".format(input_filename))
     sikuli_result = run_sikuli_cmd(input_filename)
     cmd_results.append(sikuli_result)
     if(sikuli_result['exit_status'] == 0):
         openscad_result = run_openscad_cmd(sikuli_result['output_file'])
         cmd_results.append(openscad_result)
-    pprint.pprint(cmd_results)
     upload_files = upload_result_files(data['output_dir'], cmd_results)
     response = build_job_response(job_data, upload_files, cmd_results)
     for notification in job_data['notifications']:
@@ -156,7 +162,7 @@ def handle_job(job_data):
 # Do things
 msg = job_queue.read()
 if msg is None:
-    print "No jobs"
+    logger.info("No jobs")
 else:
     data = json.loads(msg.get_body())
     handle_job(data)

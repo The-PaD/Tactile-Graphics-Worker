@@ -1,4 +1,5 @@
 from tactilegraphics.inbox import *
+from tactilegraphics.logger import *
 from boto.sqs.connection import SQSConnection
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
@@ -7,6 +8,11 @@ import uuid
 import mimetypes
 import json
 import ConfigParser, os
+import logging
+
+# Set up logging
+logger = TGLogger.set_logger('tg_imap_watcher')
+logger.info("IMAP watcher started")
 
 # Set up global objects
 config = ConfigParser.ConfigParser()
@@ -27,7 +33,7 @@ db = couch[config.get('tg','TG_COUCH_DB')]
 # Functions that get things done
 def save_part(msg_id, content_type, data):
     path = "message-parts/{0}/{1}".format(msg_id, uuid.uuid4().hex)
-    print "saving {0} part to {1}".format(content_type, path)
+    logger.info("saving {0} part to {1}".format(content_type, path))
     k = bucket.new_key(path)
     k.set_contents_from_string(data, headers={'Content-Type': content_type})
     k.make_public()
@@ -76,7 +82,6 @@ def handle_email(msg):
                 'uri': save_part(msg_id, part.get_content_type(),
                                  part.get_payload(decode=True))
             })
-            print part.get_content_type()
     doc_id, doc_rev = db.save(msg_data)
     create_jobs(msg_data)
 
@@ -85,6 +90,7 @@ inbox = TGInbox(config.get('email','IMAP_SERVER'),
                 config.get('email','IMAP_PORT'),
                 config.get('email','IMAP_USER'),
                 config.get('email','IMAP_PASSWORD'))
-print inbox.unreadcount
+logger.info("Handling %d messages" % inbox.unreadcount)
 for msg in inbox:
     handle_email(msg)
+logger.info("Done.")
